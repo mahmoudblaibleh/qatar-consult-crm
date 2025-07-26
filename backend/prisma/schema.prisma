@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"  // Change to "mysql" if you prefer MySQL
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdTasks Task[] @relation("TaskCreator")
+  assignedTasks Task[] @relation("TaskAssignee")
+
+  @@map("users")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  company     String?
+  address     String?
+  notes       String?
+  status      CustomerStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tasks       Task[]
+  attachments Attachment[]
+
+  @@map("customers")
+}
+
+model Lawyer {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  phone           String?
+  specialty       String
+  licenseNumber   String   @unique
+  yearsExperience Int
+  status          LawyerStatus @default(ACTIVE)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tasks           Task[]
+  attachments     Attachment[]
+
+  @@map("lawyers")
+}
+
+model BusinessUser {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  position    String
+  company     String
+  businessType String
+  status      BusinessUserStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tasks       Task[]
+  attachments Attachment[]
+
+  @@map("business_users")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(NEW)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Foreign Keys
+  customerId     String?
+  lawyerId       String?
+  businessUserId String?
+  createdById    String
+  assignedToId   String?
+
+  // Relations
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  lawyer       Lawyer?       @relation(fields: [lawyerId], references: [id])
+  businessUser BusinessUser? @relation(fields: [businessUserId], references: [id])
+  createdBy    User          @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedTo   User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  attachments  Attachment[]
+
+  @@map("tasks")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String
+  originalName String
+  mimetype  String
+  size      Int
+  path      String
+  createdAt DateTime @default(now())
+
+  // Foreign Keys (one of these will be set)
+  customerId     String?
+  lawyerId       String?
+  businessUserId String?
+  taskId         String?
+
+  // Relations
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  lawyer       Lawyer?       @relation(fields: [lawyerId], references: [id])
+  businessUser BusinessUser? @relation(fields: [businessUserId], references: [id])
+  task         Task?         @relation(fields: [taskId], references: [id])
+
+  @@map("attachments")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  LAWYER
+  BUSINESS_USER
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  VIP
+}
+
+enum LawyerStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+enum BusinessUserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum TaskStatus {
+  NEW
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
